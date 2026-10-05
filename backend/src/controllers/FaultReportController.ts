@@ -1,1 +1,12 @@
-import type { Request, Response } from "express"; import { faultReportService } from "../services/FaultReportService"; export const faultReportController = { list: (_req: Request, res: Response) => res.json(faultReportService.list()), create: (req: Request, res: Response) => res.status(201).json(faultReportService.create(req.body)) };
+import type { Request, Response } from "express";
+import { faultReportService } from "../services/FaultReportService";
+import { asyncHandler } from "../utils/asyncHandler";
+
+export const faultReportController = {
+  list: asyncHandler(async (_req: Request, res: Response) => {
+    res.json(await faultReportService.list());
+  }),
+  detail: asyncHandler(async (req: Request, res: Response) => {
+    res.json(await faultReportService.detail(Number(req.params.id)));
+  })
+};

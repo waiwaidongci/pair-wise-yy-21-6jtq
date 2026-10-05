@@ -1,1 +1,7 @@
-import { sparePartUsageRepository } from "../repositories/SparePartUsageRepository"; export const sparePartUsageService = { list: () => sparePartUsageRepository.findAll(), create: (row: unknown) => sparePartUsageRepository.save(row) };
+import { repositories } from "../repositories";
+
+export const sparePartUsageService = {
+  list: () => repositories.db.read((tx) => repositories.sparePartUsage.findAll(tx)),
+  listByTicket: (ticketId: number) =>
+    repositories.db.read((tx) => repositories.sparePartUsage.findByTicketId(tx, ticketId))
+};

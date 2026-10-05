@@ -6,5 +6,6 @@ export interface GridAsset {
   voltage_level: string;
   location_desc: string;
   health_status: string;
-  owner_team_id: number;
+  baseline_health_status: string;
+  owner_team_id: number | null;
 }

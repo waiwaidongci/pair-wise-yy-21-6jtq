@@ -1,1 +1,14 @@
-import type { Request, Response } from "express"; import { sparePartUsageService } from "../services/SparePartUsageService"; export const sparePartUsageController = { list: (_req: Request, res: Response) => res.json(sparePartUsageService.list()), create: (req: Request, res: Response) => res.status(201).json(sparePartUsageService.create(req.body)) };
+import type { Request, Response } from "express";
+import { sparePartUsageService } from "../services/SparePartUsageService";
+import { asyncHandler } from "../utils/asyncHandler";
+
+export const sparePartUsageController = {
+  list: asyncHandler(async (req: Request, res: Response) => {
+    const ticketId = req.query.ticketId ? Number(req.query.ticketId) : null;
+    res.json(
+      ticketId
+        ? await sparePartUsageService.listByTicket(ticketId)
+        : await sparePartUsageService.list()
+    );
+  })
+};

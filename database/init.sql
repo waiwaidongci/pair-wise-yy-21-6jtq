@@ -1,63 +1,95 @@
+-- grid-repair 权威建表脚本（与 backend/src/config/schema.ts 保持一致）
+-- 由 docker-entrypoint-initdb.d 在首次创建数据库卷时执行
+
 CREATE TABLE IF NOT EXISTS grid_asset (
-  id INTEGER PRIMARY KEY,
-  asset_code TEXT,
-  asset_type TEXT,
-  feeder_line TEXT,
-  voltage_level TEXT,
-  location_desc TEXT,
-  health_status TEXT,
-  owner_team_id TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  asset_code VARCHAR(64) NOT NULL,
+  asset_type VARCHAR(32) NOT NULL,
+  feeder_line VARCHAR(128) NOT NULL,
+  voltage_level VARCHAR(16) NOT NULL,
+  location_desc VARCHAR(255) NOT NULL DEFAULT '',
+  health_status VARCHAR(32) NOT NULL DEFAULT 'NORMAL',
+  baseline_health_status VARCHAR(32) NOT NULL DEFAULT 'NORMAL',
+  owner_team_id INT NULL,
+  KEY idx_asset_line (feeder_line)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS fault_report (
-  id INTEGER PRIMARY KEY,
-  reporter_name TEXT,
-  phone TEXT,
-  asset_id TEXT,
-  fault_type TEXT,
-  address_desc TEXT,
-  severity TEXT,
-  report_channel TEXT,
-  status TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  reporter_name VARCHAR(64) NOT NULL,
+  phone VARCHAR(32) NOT NULL DEFAULT '',
+  asset_id INT NOT NULL,
+  fault_type VARCHAR(32) NOT NULL,
+  address_desc VARCHAR(255) NOT NULL DEFAULT '',
+  severity VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  report_channel VARCHAR(32) NOT NULL DEFAULT 'PHONE',
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  KEY idx_fault_asset (asset_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS repair_ticket (
-  id INTEGER PRIMARY KEY,
-  fault_report_id TEXT,
-  team_id TEXT,
-  dispatcher_id TEXT,
-  priority TEXT,
-  status TEXT,
-  assigned_at TEXT,
-  restored_at TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  fault_report_id INT NOT NULL,
+  team_id INT NOT NULL,
+  dispatcher_id INT NOT NULL,
+  priority VARCHAR(16) NOT NULL DEFAULT 'MEDIUM',
+  status VARCHAR(32) NOT NULL DEFAULT 'WAIT_DISPATCH',
+  assigned_at DATETIME(3) NULL,
+  restored_at DATETIME(3) NULL,
+  restored_by INT NULL,
+  restore_request_id VARCHAR(64) NULL,
+  version INT NOT NULL DEFAULT 0,
+  KEY idx_ticket_fault (fault_report_id),
+  KEY idx_ticket_team (team_id),
+  UNIQUE KEY uk_ticket_restore_request (restore_request_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS crew (
-  id INTEGER PRIMARY KEY,
-  name TEXT,
-  leader_id TEXT,
-  skill_tags TEXT,
-  duty_status TEXT,
-  current_ticket_id TEXT,
-  contact_phone TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(64) NOT NULL,
+  leader_id INT NULL,
+  skill_tags VARCHAR(255) NOT NULL DEFAULT '',
+  duty_status VARCHAR(32) NOT NULL DEFAULT 'AVAILABLE',
+  current_ticket_id INT NULL,
+  contact_phone VARCHAR(32) NOT NULL DEFAULT '',
+  KEY idx_crew_current_ticket (current_ticket_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS spare_part_usage (
-  id INTEGER PRIMARY KEY,
-  ticket_id TEXT,
-  part_code TEXT,
-  part_name TEXT,
-  quantity TEXT,
-  warehouse_name TEXT,
-  approved_by TEXT,
-  usage_status TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  ticket_id INT NOT NULL,
+  part_code VARCHAR(64) NOT NULL,
+  part_name VARCHAR(128) NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  warehouse_name VARCHAR(128) NOT NULL DEFAULT '',
+  approved_by VARCHAR(64) NOT NULL DEFAULT '',
+  usage_status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  KEY idx_usage_ticket (ticket_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 复电确认的权威幂等记录：CONFIRMED 先落盘（崩溃不丢），处置完成后推进 APPLIED / CONFLICTED
+CREATE TABLE IF NOT EXISTS restore_confirmation (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  request_id VARCHAR(64) NOT NULL,
+  ticket_id INT NOT NULL,
+  dispatcher_id INT NOT NULL,
+  restored_at DATETIME(3) NOT NULL,
+  stage VARCHAR(16) NOT NULL DEFAULT 'CONFIRMED',
+  result_snapshot LONGTEXT NULL,
+  attempts INT NOT NULL DEFAULT 1,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  UNIQUE KEY uk_restore_request (request_id),
+  KEY idx_restore_ticket (ticket_id),
+  KEY idx_restore_stage (stage)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS audit_log (
-  id INTEGER PRIMARY KEY,
-  actor TEXT,
-  action TEXT,
-  target_type TEXT,
-  target_id TEXT,
-  created_at TEXT
-);
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  actor VARCHAR(64) NOT NULL DEFAULT '',
+  action VARCHAR(128) NOT NULL,
+  target_type VARCHAR(32) NOT NULL DEFAULT '',
+  target_id VARCHAR(64) NOT NULL DEFAULT '',
+  detail VARCHAR(1024) NOT NULL DEFAULT '',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
