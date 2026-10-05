@@ -32,7 +32,10 @@ services:
       DB_NAME: ${DB_NAME:-app_db}
       DB_USER: ${DB_USER:-app_user}
       DB_PASSWORD: ${DB_PASSWORD:-app_password}
-      JWT_SECRET: local-dev-secret
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret}
+      DATA_DIR: /app/data
+    volumes:
+      - backend_data:/app/data
     ports:
       - "${BACKEND_PORT:-21104}:3000"
     depends_on:
@@ -57,3 +60,4 @@ services:
         condition: service_healthy
 volumes:
   db_data:
+  backend_data:

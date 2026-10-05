@@ -1,1 +1,8 @@
-import { faultReportRepository } from "../repositories/FaultReportRepository"; export const faultReportService = { list: () => faultReportRepository.findAll(), create: (row: unknown) => faultReportRepository.save(row) };
+import { faultReportRepository } from "../repositories/FaultReportRepository";
+import type { EntityRow } from "../store/JsonStore";
+
+export const faultReportService = {
+  list: (): EntityRow[] => faultReportRepository.findAll(),
+  get: (id: number | string): EntityRow | undefined => faultReportRepository.findById(id),
+  create: (row: unknown): EntityRow => faultReportRepository.insert(row as EntityRow),
+};
